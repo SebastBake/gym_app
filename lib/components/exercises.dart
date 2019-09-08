@@ -5,7 +5,5 @@ class ExercisesScreen extends StatelessWidget {
   const ExercisesScreen({Key key}) : super(key: key);
 
   @override
-  build(context) => ScreenTemplate(
-        title: "Exercises",
-      );
+  build(context) => ScreenTemplate(title: "Exercises");
 }
