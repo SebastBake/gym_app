@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gym_app/components/error.dart';
+import 'package:gym_app/components/exercises.dart';
 import 'package:gym_app/components/home.dart';
 import 'package:gym_app/components/new_session.dart';
 import 'package:gym_app/components/sessions.dart';
@@ -30,6 +31,11 @@ class _App extends StatelessWidget {
                 signedOut: (context, state) =>
                     SignInOrRegisterScreen(authState: state),
               ),
+
+          /////////////////////////////////////////////////
+          /// Handler for the exercises route
+          ///
+          Routes.exercises: (context) => ExercisesScreen(),
 
           /////////////////////////////////////////////////
           /// Handler for the index route
