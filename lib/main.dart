@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gym_app/components/error.dart';
 import 'package:gym_app/components/home.dart';
 import 'package:gym_app/components/new_session.dart';
 import 'package:gym_app/components/sessions.dart';
@@ -16,6 +17,10 @@ class _App extends StatelessWidget {
         title: 'Workout Log',
         theme: ThemeData.dark(),
         initialRoute: Routes.index,
+        onUnknownRoute: (routeSettings) => MaterialPageRoute(
+          builder: (context) =>
+              ErrorScreen(debugMessage: 'The page could not be found.'),
+        ),
         routes: {
           /////////////////////////////////////////////////
           /// Handler for the index route
@@ -29,11 +34,7 @@ class _App extends StatelessWidget {
           /////////////////////////////////////////////////
           /// Handler for the index route
           ///
-          Routes.sessionList: (context) => AuthenticationBloc(
-                signedIn: (context, state) => SessionsScreen(authState: state),
-                signedOut: (context, state) =>
-                    SignInOrRegisterScreen(authState: state),
-              ),
+          Routes.sessionList: (context) => SessionsScreen(),
 
           /////////////////////////////////////////////////
           /// Handler for the session route

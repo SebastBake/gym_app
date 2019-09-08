@@ -142,26 +142,31 @@ class _SignedOut extends AuthSignedOut {
 
   @override
   signInWithGoogle() async {
-    controller.add(AuthSigningIn());
+    try {
+      controller.add(AuthSigningIn());
 
-    final googleAccount = await _googleSignIn.signIn();
+      final googleAccount = await _googleSignIn.signIn();
 
-    final googleAuth = await googleAccount.authentication;
+      final googleAuth = await googleAccount.authentication;
 
-    final credential = GoogleAuthProvider.getCredential(
-      accessToken: googleAuth.accessToken,
-      idToken: googleAuth.idToken,
-    );
+      final credential = GoogleAuthProvider.getCredential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
 
-    final firebaseSignIn = await _auth.signInWithCredential(credential);
+      final firebaseSignIn = await _auth.signInWithCredential(credential);
 
-    final nextState = _SignedIn(
-      controller: controller,
-      userId: firebaseSignIn.user.uid,
-      displayName: firebaseSignIn.user.displayName,
-    );
+      final nextState = _SignedIn(
+        controller: controller,
+        userId: firebaseSignIn.user.uid,
+        displayName: firebaseSignIn.user.displayName,
+      );
 
-    controller.add(nextState);
+      controller.add(nextState);
+    } catch (exception) {
+      print(exception);
+      controller.add(this);
+    }
   }
 }
 
