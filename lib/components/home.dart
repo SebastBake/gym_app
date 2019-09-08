@@ -34,8 +34,10 @@ class HomeScreen extends StatelessWidget {
                 children: [
                   RaisedButton(
                     child: Text("Edit Exercise Plan"),
-                    onPressed: () => Navigator.of(context)
-                        .pushNamed(Routes.exercises, arguments: this.authState),
+                    onPressed: () => Navigator.of(context).pushNamed(
+                      Routes.exercises,
+                      arguments: this.authState,
+                    ),
                   ),
                   RaisedButton(
                     child: Text("View Previous Exercise Sessions"),
