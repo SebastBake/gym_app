@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:gym_app/routes.dart';
 import 'package:gym_app/services/auth.dart';
-import 'package:gym_app/utils/navigation.dart';
 
 class MenuModal extends StatelessWidget {
   final AuthSignedIn authState;
@@ -23,7 +23,8 @@ class MenuModal extends StatelessWidget {
               child: Text('Sign Out'),
               onPressed: () {
                 this.authState.signOut();
-                NavUtil.back(context);
+                Navigator.of(context)
+                    .popUntil((route) => route.settings.name == Routes.index);
               },
             ),
           ],

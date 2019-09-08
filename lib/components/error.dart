@@ -11,17 +11,32 @@ class ErrorScreen extends StatelessWidget {
     var theme = Theme.of(context);
 
     return Scaffold(
-      body: Column(
+      body: Row(
         mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: <Widget>[
-          Text(
-            'Oops, an error occurred.',
-            style: theme.textTheme.display1,
-          ),
-          Text(
-            this.debugMessage,
-            style: theme.textTheme.body1,
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: <Widget>[
+              Text(
+                'Oops, an error occurred.',
+                style: theme.textTheme.title,
+              ),
+              Padding(
+                padding: EdgeInsets.only(top: 20),
+                child: Text(
+                  this.debugMessage,
+                  style: theme.textTheme.subtitle,
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.only(top: 20),
+                child: OutlineButton(
+                  child: Text("Go Back"),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              )
+            ],
           )
         ],
       ),
