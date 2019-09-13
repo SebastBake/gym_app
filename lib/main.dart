@@ -8,9 +8,7 @@ import 'package:gym_app/components/signin_or_register.dart';
 import 'package:gym_app/routes.dart';
 import 'package:gym_app/services/auth.dart';
 
-main() {
-  runApp(_App());
-}
+main() => runApp(_App());
 
 class _App extends StatelessWidget {
   @override
