@@ -7,13 +7,17 @@ import 'package:gym_app/routes.dart';
 import 'package:gym_app/services/auth.dart';
 
 class SessionsScreen extends StatelessWidget {
-  const SessionsScreen({Key key}) : super(key: key);
+  final AuthSignedIn authState;
+  const SessionsScreen({
+    Key key,
+    @required this.authState,
+  }) : super(key: key);
 
   @override
   build(context) => ScreenTemplate(
         title: "Sessions",
         body: SessionList(),
-        onMenuPressed: () => MenuModal.show(context, _getAuthState(context)),
+        onMenuPressed: () => MenuModal.show(context, this.authState),
         fabs: [
           ExtendedFAB(
             tag: "btn1",
@@ -23,15 +27,6 @@ class SessionsScreen extends StatelessWidget {
           ),
         ],
       );
-
-  AuthSignedIn _getAuthState(BuildContext context) {
-    final route = ModalRoute.of(context);
-    final args = route.settings.arguments;
-    if (args is AuthSignedIn) {
-      return args;
-    }
-    throw Exception("Cannot find auth state!");
-  }
 }
 
 class SessionList extends StatelessWidget {

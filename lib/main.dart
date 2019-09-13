@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gym_app/components/error.dart';
+import 'package:gym_app/components/exercises.dart';
 import 'package:gym_app/components/home.dart';
 import 'package:gym_app/components/new_session.dart';
 import 'package:gym_app/components/sessions.dart';
@@ -32,9 +33,17 @@ class _App extends StatelessWidget {
               ),
 
           /////////////////////////////////////////////////
+          /// Handler for the exercises route
+          ///
+          Routes.exercises: (context) => const ExercisesScreen(),
+
+          /////////////////////////////////////////////////
           /// Handler for the index route
           ///
-          Routes.sessionList: (context) => SessionsScreen(),
+          Routes.sessionList: (context) {
+            final authState = _getAuthState(context);
+            return SessionsScreen(authState: authState);
+          },
 
           /////////////////////////////////////////////////
           /// Handler for the session route
@@ -42,4 +51,13 @@ class _App extends StatelessWidget {
           Routes.session: (context) => const SessionScreen(),
         },
       );
+}
+
+AuthSignedIn _getAuthState(BuildContext context) {
+  final route = ModalRoute.of(context);
+  final args = route.settings.arguments;
+  if (args is AuthSignedIn) {
+    return args;
+  }
+  throw Exception("Cannot find auth state!");
 }
