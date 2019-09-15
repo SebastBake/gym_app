@@ -51,33 +51,35 @@ class ExerciseList extends StatelessWidget {
             return Text('Loading...');
           default:
             return ListView(
-              children:
-                  snapshot.data.documents.map((DocumentSnapshot document) {
-                print(document.toString());
-                return ListTile(
-                  title: Text(document['name'].toString()),
-                  onTap: () {
-                    showModalBottomSheet<ExerciseData>(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10.0),
-                      ),
-                      context: context,
-                      builder: (context) => Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 20),
-                        child: ExerciseForm(
-                          onCreate: (data) {
-                            final json = data.toJson();
-                            Firestore.instance
-                                .collection('exercises')
-                                .add(json);
-                            Navigator.of(context).pop();
-                          },
+              children: snapshot.data.documents.map(
+                (DocumentSnapshot document) {
+                  print(document.toString());
+                  return ListTile(
+                    title: Text(document['name'].toString()),
+                    onTap: () {
+                      showModalBottomSheet<ExerciseData>(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10.0),
                         ),
-                      ),
-                    );
-                  },
-                );
-              }).toList(),
+                        context: context,
+                        builder: (context) => Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 20),
+                          child: ExerciseForm(
+                            initialData: ExerciseData.fromJson(document.data),
+                            onCreate: (data) {
+                              final json = data.toJson();
+                              Firestore.instance
+                                  .collection('exercises')
+                                  .add(json);
+                              Navigator.of(context).pop();
+                            },
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ).toList(),
             );
         }
       },

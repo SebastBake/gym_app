@@ -52,9 +52,9 @@ class _ExerciseFormState extends State<ExerciseForm> {
     if (initialData != null) {
       _nameFieldController.text = initialData.name;
       _measurables.addAll(initialData.measurables);
+    } else {
+      _nameFieldController.text = '';
     }
-
-    _nameFieldController.text = '';
 
     super.initState();
   }
