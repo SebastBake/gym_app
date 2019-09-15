@@ -54,3 +54,39 @@ class NamedCheckboxField extends StatelessWidget {
         secondary: Icon(this.icon),
       );
 }
+
+class FormSectionTitle extends StatelessWidget {
+  final String title;
+
+  const FormSectionTitle(this.title);
+
+  @override
+  build(context) => Padding(
+      padding: const EdgeInsets.only(top: 20, bottom: 10),
+      child: Text(
+        this.title,
+        style: Theme.of(context).textTheme.headline,
+      ));
+}
+
+class FormButton extends StatelessWidget {
+  final Function onSubmit;
+  final String text;
+  final Color color;
+
+  const FormButton({
+    @required this.text,
+    this.onSubmit,
+    this.color,
+  });
+
+  @override
+  build(BuildContext context) => Padding(
+        padding: EdgeInsets.all(10),
+        child: RaisedButton(
+          color: this.color,
+          child: Text(this.text),
+          onPressed: this.onSubmit,
+        ),
+      );
+}

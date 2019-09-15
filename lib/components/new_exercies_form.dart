@@ -3,16 +3,43 @@ import 'package:gym_app/components/forms.dart';
 import 'package:gym_app/services/exercises.dart';
 
 class ExerciseForm extends StatefulWidget {
+  final Function(ExerciseData) onCreate;
+  final Function(ExerciseData) onUpdate;
+  final Function onDelete;
+  final ExerciseData initialData;
+
+  const ExerciseForm({
+    this.initialData,
+    this.onDelete,
+    this.onUpdate,
+    this.onCreate,
+  });
+
   @override
-  _ExerciseFormState createState() => _ExerciseFormState();
+  _ExerciseFormState createState() => _ExerciseFormState(
+        initialData: this.initialData,
+        onDelete: this.onDelete,
+        onUpdate: this.onUpdate,
+        onCreate: this.onCreate,
+      );
 }
 
 class _ExerciseFormState extends State<ExerciseForm> {
   final _formKey = GlobalKey<FormState>();
   final _nameFieldController = TextEditingController();
+  final Set<ExerciseMeasurable> _measurables = Set();
 
-  bool _measureSetsReps = false;
-  bool _measureWeight = false;
+  final Function(ExerciseData) onCreate;
+  final Function(ExerciseData) onUpdate;
+  final Function onDelete;
+  final ExerciseData initialData;
+
+  _ExerciseFormState({
+    this.initialData,
+    this.onDelete,
+    this.onUpdate,
+    this.onCreate,
+  });
 
   @override
   void dispose() {
@@ -21,97 +48,146 @@ class _ExerciseFormState extends State<ExerciseForm> {
   }
 
   @override
-  build(context) => GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () => FocusScope.of(context).requestFocus(FocusNode()),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Padding(
-                  padding: EdgeInsets.only(top: 20, bottom: 10),
-                  child: Text(
-                    'Exercise Name:',
-                    style: Theme.of(context).textTheme.headline,
-                  )),
-              NamedTextField(
-                  controller: this._nameFieldController,
-                  placeholder: 'Exercise Name',
-                  validator: this._validateExerciseName),
-              Padding(
-                  padding: EdgeInsets.only(top: 20, bottom: 10),
-                  child: Text(
-                    'Measuring:',
-                    style: Theme.of(context).textTheme.headline,
-                  )),
-              NamedCheckboxField(
-                  title: 'Reps / Sets',
-                  value: _measureSetsReps,
-                  icon: Icons.threesixty,
-                  onChanged: (value) => this.setState(() {
-                        _measureSetsReps = value;
-                      })),
-              NamedCheckboxField(
-                  title: 'Weight',
-                  value: _measureWeight,
-                  icon: Icons.fitness_center,
-                  onChanged: (value) => this.setState(() {
-                        _measureWeight = value;
-                      })),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  // Padding(
-                  //   padding: EdgeInsets.all(10),
-                  //   child: RaisedButton(
-                  //     color: Theme.of(context).errorColor,
-                  //     child: Text('Delete'),
-                  //     onPressed: form.onDelete,
-                  //   ),
-                  // ),
-                  Padding(
-                    padding: EdgeInsets.all(10),
-                    child: RaisedButton(
-                      child: Text('Create Exercise'),
-                      onPressed: () {
-                        final isValid = _formKey.currentState.validate();
-                        if (isValid) {
-                          final name = _nameFieldController.text;
-                          List<ExerciseMeasurable> measureables = [];
+  void initState() {
+    if (initialData != null) {
+      _nameFieldController.text = initialData.name;
+      _measurables.addAll(initialData.measurables);
+    }
 
-                          if (_measureSetsReps) {
-                            measureables.add(ExerciseMeasurable.repsAndSets);
-                          }
+    _nameFieldController.text = '';
 
-                          if (_measureWeight) {
-                            measureables.add(ExerciseMeasurable.weight);
-                          }
+    super.initState();
+  }
 
-                          final data = ExerciseData(
-                            name: name,
-                            measurables: measureables,
-                          );
-
-                          Navigator.of(context).pop(data);
-                        }
-                      },
-                    ),
-                  ),
-                  // Padding(
-                  //   padding: EdgeInsets.all(10),
-                  //   child: RaisedButton(
-                  //     child: Text('Update'),
-                  //     onPressed: form.onUpdate,
-                  //   ),
-                  // ),
-                ],
-              ),
-            ],
-          ),
+  @override
+  build(context) => Form(
+        key: _formKey,
+        child: _ExerciseFormTemplate(
+          nameFieldController: _nameFieldController,
+          onCreate: onCreate != null ? _onPressCreate : null,
+          onDelete: onDelete != null ? _onPressDelete : null,
+          onUpdate: onUpdate != null ? _onPressUpdate : null,
+          addMeasurable: (m) => setState(() {
+            _measurables.add(m);
+          }),
+          removeMeasurable: (m) => setState(() {
+            _measurables.remove(m);
+          }),
+          hasMeasurable: (m) => _measurables.contains(m),
         ),
       );
 
+  void _onPressDelete() {
+    onDelete();
+  }
+
+  void _onPressUpdate() {
+    final isValid = _formKey.currentState.validate();
+    if (!isValid) {
+      return;
+    }
+
+    final name = _nameFieldController.text;
+    final data = ExerciseData(measurables: _measurables, name: name);
+    onUpdate(data);
+  }
+
+  void _onPressCreate() {
+    final isValid = _formKey.currentState.validate();
+    if (!isValid) {
+      return;
+    }
+
+    final name = _nameFieldController.text;
+    final data = ExerciseData(measurables: _measurables, name: name);
+    onCreate(data);
+  }
+}
+
+/// Stateless widget which renders the form
+class _ExerciseFormTemplate extends StatelessWidget {
+  final TextEditingController nameFieldController;
+  final Function onCreate;
+  final Function onUpdate;
+  final Function onDelete;
+  final Function(ExerciseMeasurable) removeMeasurable;
+  final Function(ExerciseMeasurable) addMeasurable;
+  final Function(ExerciseMeasurable) hasMeasurable;
+
+  _ExerciseFormTemplate({
+    @required this.nameFieldController,
+    @required this.addMeasurable,
+    @required this.removeMeasurable,
+    @required this.hasMeasurable,
+    this.onDelete,
+    this.onUpdate,
+    this.onCreate,
+  });
+
+  @override
+  build(context) => GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => FocusScope.of(context).requestFocus(FocusNode()),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const FormSectionTitle('Exercise Name:'),
+            NamedTextField(
+              placeholder: 'Exercise Name',
+              controller: nameFieldController,
+              validator: _validateExerciseName,
+            ),
+            const FormSectionTitle('Measuring:'),
+            _buildCheckbox(
+              title: 'Reps / Sets',
+              icon: Icons.threesixty,
+              measurable: ExerciseMeasurable.repsAndSets,
+            ),
+            _buildCheckbox(
+              title: 'Weight',
+              icon: Icons.fitness_center,
+              measurable: ExerciseMeasurable.weight,
+            ),
+            Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+              // Delete BUtton
+              if (onDelete != null)
+                FormButton(
+                    text: "Delete",
+                    onSubmit: onDelete,
+                    color: Theme.of(context).errorColor),
+
+              // Add update button
+              if (onUpdate != null)
+                FormButton(text: "Update", onSubmit: onUpdate),
+
+              // Create button
+              if (onCreate != null)
+                FormButton(text: "Create", onSubmit: onCreate)
+            ]),
+          ],
+        ),
+      );
+
+  /// Creates a checkbox to add or remove a measurable
+  _buildCheckbox({
+    @required String title,
+    @required ExerciseMeasurable measurable,
+    @required IconData icon,
+  }) =>
+      NamedCheckboxField(
+        title: title,
+        icon: icon,
+        value: hasMeasurable(measurable),
+        onChanged: (value) {
+          if (value) {
+            addMeasurable(measurable);
+          } else {
+            removeMeasurable(measurable);
+          }
+        },
+      );
+
+  /// Validates Exercise Name
   String _validateExerciseName(String value) {
     if (value.isEmpty) {
       return 'Exercise name is required.';

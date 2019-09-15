@@ -16,21 +16,23 @@ class ExercisesScreen extends StatelessWidget {
         fabs: <Widget>[
           FAB(
             icon: Icons.add,
-            onPressed: () async {
-              final result = await showModalBottomSheet<ExerciseData>(
+            onPressed: () {
+              showModalBottomSheet<ExerciseData>(
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10.0),
                 ),
                 context: context,
                 builder: (context) => Padding(
                   padding: EdgeInsets.symmetric(horizontal: 20),
-                  child: ExerciseForm(),
+                  child: ExerciseForm(
+                    onCreate: (data) {
+                      final json = data.toJson();
+                      Firestore.instance.collection('exercises').add(json);
+                      Navigator.of(context).pop();
+                    },
+                  ),
                 ),
               );
-
-              final json = result.toJson();
-
-              Firestore.instance.collection('exercises').add(json);
             },
           )
         ],
@@ -43,16 +45,37 @@ class ExerciseList extends StatelessWidget {
     return StreamBuilder<QuerySnapshot>(
       stream: Firestore.instance.collection('exercises').snapshots(),
       builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
-        if (snapshot.hasError) return new Text('Error: ${snapshot.error}');
+        if (snapshot.hasError) return Text('Error: ${snapshot.error}');
         switch (snapshot.connectionState) {
           case ConnectionState.waiting:
-            return new Text('Loading...');
+            return Text('Loading...');
           default:
-            return new ListView(
+            return ListView(
               children:
                   snapshot.data.documents.map((DocumentSnapshot document) {
-                return new ListTile(
-                  title: new Text(document['name'].toString()),
+                print(document.toString());
+                return ListTile(
+                  title: Text(document['name'].toString()),
+                  onTap: () {
+                    showModalBottomSheet<ExerciseData>(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10.0),
+                      ),
+                      context: context,
+                      builder: (context) => Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 20),
+                        child: ExerciseForm(
+                          onCreate: (data) {
+                            final json = data.toJson();
+                            Firestore.instance
+                                .collection('exercises')
+                                .add(json);
+                            Navigator.of(context).pop();
+                          },
+                        ),
+                      ),
+                    );
+                  },
                 );
               }).toList(),
             );
