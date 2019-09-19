@@ -53,7 +53,6 @@ class ExerciseList extends StatelessWidget {
             return ListView(
               children: snapshot.data.documents.map(
                 (DocumentSnapshot document) {
-                  print(document.toString());
                   return ListTile(
                     title: Text(document['name'].toString()),
                     onTap: () {
@@ -66,11 +65,20 @@ class ExerciseList extends StatelessWidget {
                           padding: EdgeInsets.symmetric(horizontal: 20),
                           child: ExerciseForm(
                             initialData: ExerciseData.fromJson(document.data),
-                            onCreate: (data) {
+                            onDelete: () {
+                              Firestore.instance
+                                  .collection('exercises')
+                                  .document(document.documentID)
+                                  .delete();
+
+                              Navigator.of(context).pop();
+                            },
+                            onUpdate: (data) {
                               final json = data.toJson();
                               Firestore.instance
                                   .collection('exercises')
-                                  .add(json);
+                                  .document(document.documentID)
+                                  .updateData(json);
                               Navigator.of(context).pop();
                             },
                           ),

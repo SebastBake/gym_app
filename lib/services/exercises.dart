@@ -4,8 +4,15 @@ abstract class ExerciseMeasurable {
   String get name;
   String get jsonKey;
 
-  static final weight = _ExerciseMeasurable(name: 'Weight');
-  static final repsAndSets = _ExerciseMeasurable(name: 'Reps / Sets');
+  static final weight = _ExerciseMeasurable(
+    name: 'Weight',
+    jsonKey: 'weight',
+  );
+
+  static final repsAndSets = _ExerciseMeasurable(
+    name: 'Reps / Sets',
+    jsonKey: 'setsAndReps',
+  );
 
   static final all = [
     weight,
@@ -26,11 +33,13 @@ class ExerciseData {
   });
 
   factory ExerciseData.fromJson(Map<String, dynamic> json) {
-    return ExerciseData(
+    final data = ExerciseData(
         name: json['name'],
         measurables: ExerciseMeasurable.all
             .where((item) => json['measurables'].contains(item.jsonKey))
             .toSet());
+
+    return data;
   }
 
   factory ExerciseData.empty() => ExerciseData(name: '', measurables: Set());
@@ -46,5 +55,5 @@ class _ExerciseMeasurable extends ExerciseMeasurable {
   final String name;
   final String jsonKey;
 
-  _ExerciseMeasurable({this.name, this.jsonKey});
+  _ExerciseMeasurable({@required this.name, @required this.jsonKey});
 }
