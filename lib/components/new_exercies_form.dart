@@ -87,8 +87,13 @@ class _ExerciseFormState extends State<ExerciseForm> {
       return;
     }
 
+    if (initialData == null) {
+      throw Exception('Cannot update exercise without id!');
+    }
+
     final name = _nameFieldController.text;
-    final data = ExerciseData(measurables: _measurables, name: name);
+    final data =
+        ExerciseData(id: initialData.id, measurables: _measurables, name: name);
     onUpdate(data);
   }
 

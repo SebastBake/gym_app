@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:gym_app/components/fab.dart';
 import 'package:gym_app/components/page_template.dart';
@@ -7,90 +6,64 @@ import 'package:gym_app/services/exercises.dart';
 import 'new_exercies_form.dart';
 
 class ExercisesScreen extends StatelessWidget {
-  const ExercisesScreen({Key key}) : super(key: key);
+  final ExerciseStateLoaded state;
+
+  const ExercisesScreen({@required this.state});
 
   @override
   build(context) => ScreenTemplate(
         title: "Exercises",
-        body: ExerciseList(),
-        fabs: <Widget>[
+        body: ListView(
+          children: state.data
+              .map((exerciseItem) => ListTile(
+                    title: Text(exerciseItem.name),
+                    onTap: () => _showEditForm(context, exerciseItem),
+                  ))
+              .toList(),
+        ),
+        fabs: [
           FAB(
             icon: Icons.add,
-            onPressed: () {
-              showModalBottomSheet<ExerciseData>(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10.0),
-                ),
-                context: context,
-                builder: (context) => Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20),
-                  child: ExerciseForm(
-                    onCreate: (data) {
-                      final json = data.toJson();
-                      Firestore.instance.collection('exercises').add(json);
-                      Navigator.of(context).pop();
-                    },
-                  ),
-                ),
-              );
-            },
-          )
+            onPressed: () => _showAddForm(context),
+          ),
         ],
       );
-}
 
-class ExerciseList extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: Firestore.instance.collection('exercises').snapshots(),
-      builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
-        if (snapshot.hasError) return Text('Error: ${snapshot.error}');
-        switch (snapshot.connectionState) {
-          case ConnectionState.waiting:
-            return Text('Loading...');
-          default:
-            return ListView(
-              children: snapshot.data.documents.map(
-                (DocumentSnapshot document) {
-                  return ListTile(
-                    title: Text(document['name'].toString()),
-                    onTap: () {
-                      showModalBottomSheet<ExerciseData>(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10.0),
-                        ),
-                        context: context,
-                        builder: (context) => Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 20),
-                          child: ExerciseForm(
-                            initialData: ExerciseData.fromJson(document.data),
-                            onDelete: () {
-                              Firestore.instance
-                                  .collection('exercises')
-                                  .document(document.documentID)
-                                  .delete();
+  _showAddForm(BuildContext context) => showModalBottomSheet(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10.0),
+        ),
+        context: context,
+        builder: (context) => Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20),
+          child: ExerciseForm(
+            onCreate: (data) {
+              state.createExercise(data);
+              Navigator.of(context).pop();
+            },
+          ),
+        ),
+      );
 
-                              Navigator.of(context).pop();
-                            },
-                            onUpdate: (data) {
-                              final json = data.toJson();
-                              Firestore.instance
-                                  .collection('exercises')
-                                  .document(document.documentID)
-                                  .updateData(json);
-                              Navigator.of(context).pop();
-                            },
-                          ),
-                        ),
-                      );
-                    },
-                  );
-                },
-              ).toList(),
-            );
-        }
-      },
-    );
-  }
+  _showEditForm(BuildContext context, ExerciseData exerciseItem) =>
+      showModalBottomSheet(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10.0),
+        ),
+        context: context,
+        builder: (context) => Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20),
+          child: ExerciseForm(
+            initialData: exerciseItem,
+            onDelete: () {
+              state.deleteExercise(exerciseItem.id);
+              Navigator.of(context).pop();
+            },
+            onUpdate: (data) {
+              state.updateExercise(data);
+              Navigator.of(context).pop();
+            },
+          ),
+        ),
+      );
 }
