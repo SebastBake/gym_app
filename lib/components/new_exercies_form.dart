@@ -17,10 +17,10 @@ class ExerciseForm extends StatefulWidget {
 
   @override
   _ExerciseFormState createState() => _ExerciseFormState(
-        initialData: this.initialData,
-        onDelete: this.onDelete,
-        onUpdate: this.onUpdate,
-        onCreate: this.onCreate,
+        initialData: initialData,
+        onDelete: onDelete,
+        onUpdate: onUpdate,
+        onCreate: onCreate,
       );
 }
 
@@ -29,12 +29,14 @@ class _ExerciseFormState extends State<ExerciseForm> {
   final _nameFieldController = TextEditingController();
   final Set<ExerciseMeasurable> _measurables = Set();
 
+  final String userId;
   final Function(ExerciseData) onCreate;
   final Function(ExerciseData) onUpdate;
   final Function onDelete;
   final ExerciseData initialData;
 
   _ExerciseFormState({
+    this.userId,
     this.initialData,
     this.onDelete,
     this.onUpdate,
@@ -92,8 +94,11 @@ class _ExerciseFormState extends State<ExerciseForm> {
     }
 
     final name = _nameFieldController.text;
-    final data =
-        ExerciseData(id: initialData.id, measurables: _measurables, name: name);
+    final data = ExerciseData(
+      id: initialData.id,
+      measurables: _measurables,
+      name: name,
+    );
     onUpdate(data);
   }
 
@@ -104,7 +109,10 @@ class _ExerciseFormState extends State<ExerciseForm> {
     }
 
     final name = _nameFieldController.text;
-    final data = ExerciseData(measurables: _measurables, name: name);
+    final data = ExerciseData(
+      measurables: _measurables,
+      name: name,
+    );
     onCreate(data);
   }
 }
@@ -143,16 +151,8 @@ class _ExerciseFormTemplate extends StatelessWidget {
               validator: _validateExerciseName,
             ),
             const FormSectionTitle('Measuring:'),
-            _buildCheckbox(
-              title: 'Reps / Sets',
-              icon: Icons.threesixty,
-              measurable: ExerciseMeasurable.repsAndSets,
-            ),
-            _buildCheckbox(
-              title: 'Weight',
-              icon: Icons.fitness_center,
-              measurable: ExerciseMeasurable.weight,
-            ),
+            ...ExerciseMeasurable.all
+                .map((measurable) => _buildCheckbox(measurable)),
             Row(mainAxisAlignment: MainAxisAlignment.end, children: [
               // Delete BUtton
               if (onDelete != null)
@@ -174,14 +174,9 @@ class _ExerciseFormTemplate extends StatelessWidget {
       );
 
   /// Creates a checkbox to add or remove a measurable
-  _buildCheckbox({
-    @required String title,
-    @required ExerciseMeasurable measurable,
-    @required IconData icon,
-  }) =>
-      NamedCheckboxField(
-        title: title,
-        icon: icon,
+  _buildCheckbox(ExerciseMeasurable measurable) => NamedCheckboxField(
+        title: measurable.name,
+        icon: measurable.icon,
         value: hasMeasurable(measurable),
         onChanged: (value) {
           if (value) {

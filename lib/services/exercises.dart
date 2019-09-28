@@ -30,13 +30,16 @@ class ExerciseData {
 abstract class ExerciseMeasurable {
   String get name;
   String get jsonKey;
+  IconData get icon;
 
   static final weight = _ExerciseMeasurable(
+    icon: Icons.fitness_center,
     name: 'Weight',
     jsonKey: 'weight',
   );
 
   static final repsAndSets = _ExerciseMeasurable(
+    icon: Icons.threesixty,
     name: 'Reps / Sets',
     jsonKey: 'setsAndReps',
   );
@@ -52,14 +55,17 @@ abstract class ExerciseMeasurable {
 class ExerciseBloc extends StatefulWidget {
   final Widget Function(BuildContext) loading;
   final Widget Function(BuildContext, ExerciseStateLoaded) ready;
+  final String userId;
 
   ExerciseBloc({
     Key key,
+    @required this.userId,
     @required this.loading,
     @required this.ready,
   }) : super(key: key);
 
   _ExerciseBlocState createState() => _ExerciseBlocState(
+        userId: userId,
         loading: loading,
         ready: ready,
       );
@@ -68,10 +74,12 @@ class ExerciseBloc extends StatefulWidget {
 class _ExerciseBlocState extends State<ExerciseBloc> {
   final Widget Function(BuildContext) loading;
   final Widget Function(BuildContext, ExerciseStateLoaded) ready;
+  final String userId;
 
   Stream<_ExerciseStateLoaded> stream;
 
   _ExerciseBlocState({
+    @required this.userId,
     @required this.loading,
     @required this.ready,
   });
@@ -89,30 +97,43 @@ class _ExerciseBlocState extends State<ExerciseBloc> {
                 AsyncSnapshot<_ExerciseStateLoaded> snapshot) =>
             snapshot.hasData ? ready(context, snapshot.data) : BlankScreen(),
       );
+
+  Stream<_ExerciseStateLoaded> _makeExerciseStream() {
+    final snapshots = Firestore.instance
+        .collection('exercises')
+        .where('creatorId', isEqualTo: userId)
+        .snapshots();
+
+    final dataStream = snapshots.map(
+        (snap) => _ExerciseStateLoaded.fromDocuments(userId, snap.documents));
+
+    return dataStream;
+  }
 }
 
 /////////////////////////////////////////////////////////////////////////////////
 
-Stream<_ExerciseStateLoaded> _makeExerciseStream() {
-  final snapshots = Firestore.instance.collection('exercises').snapshots();
-
-  final dataStream = snapshots
-      .map((snap) => _ExerciseStateLoaded.fromDocuments(snap.documents));
-
-  return dataStream;
-}
-
 @immutable
 class _ExerciseStateLoaded extends ExerciseStateLoaded {
   final List<ExerciseData> data;
+  final String userId;
 
-  _ExerciseStateLoaded({@required this.data});
+  _ExerciseStateLoaded({@required this.data, @required this.userId});
 
-  factory _ExerciseStateLoaded.fromDocuments(List<DocumentSnapshot> docs) {
-    final exerciseList =
-        docs.map((doc) => exerciseDataFromDocument(doc)).toList();
+  factory _ExerciseStateLoaded.fromDocuments(
+    String userId,
+    List<DocumentSnapshot> docs,
+  ) {
+    final exerciseList = docs
+        .map((doc) => ExerciseData(
+            id: doc.documentID,
+            name: doc.data['name'],
+            measurables: ExerciseMeasurable.all
+                .where((item) => doc.data['measurables'].contains(item.jsonKey))
+                .toSet()))
+        .toList();
 
-    return _ExerciseStateLoaded(data: exerciseList);
+    return _ExerciseStateLoaded(data: exerciseList, userId: userId);
   }
 
   @override
@@ -135,20 +156,9 @@ class _ExerciseStateLoaded extends ExerciseStateLoaded {
         .updateData(json);
   }
 
-  static ExerciseData exerciseDataFromDocument(DocumentSnapshot document) {
-    final data = ExerciseData(
-        id: document.documentID,
-        name: document.data['name'],
-        measurables: ExerciseMeasurable.all
-            .where(
-                (item) => document.data['measurables'].contains(item.jsonKey))
-            .toSet());
-
-    return data;
-  }
-
-  static Map<String, dynamic> exerciseDataToJson(ExerciseData data) => ({
+  Map<String, dynamic> exerciseDataToJson(ExerciseData data) => ({
         'name': data.name,
+        'creatorId': userId,
         'measurables': data.measurables.toList().map((m) => m.jsonKey).toList(),
       });
 }
@@ -157,8 +167,10 @@ class _ExerciseStateLoaded extends ExerciseStateLoaded {
 class _ExerciseMeasurable extends ExerciseMeasurable {
   final String name;
   final String jsonKey;
+  final IconData icon;
 
   _ExerciseMeasurable({
+    @required this.icon,
     @required this.name,
     @required this.jsonKey,
   });

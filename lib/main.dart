@@ -52,9 +52,15 @@ class _App extends StatelessWidget {
           /////////////////////////////////////////////////
           /// Handler for the exercises route
           ///
-          Routes.exercises: (context) => ExerciseBloc(
-                loading: (_) => Loading(text: 'Loading exercises...'),
-                ready: (context, state) => ExercisesScreen(state: state),
+          Routes.exercises: (context) => AuthenticationBloc(
+                signedIn: (context, authState) => ExerciseBloc(
+                  userId: authState.userId,
+                  loading: (_) => Loading(text: 'Loading exercises...'),
+                  ready: (context, exerciseData) =>
+                      ExercisesScreen(state: exerciseData),
+                ),
+                signedOut: (context, state) => BlankScreen(),
+                loading: (context, state) => BlankScreen(),
               ),
 
           /////////////////////////////////////////////////
