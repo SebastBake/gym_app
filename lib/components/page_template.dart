@@ -18,10 +18,10 @@ class ScreenTemplate extends StatelessWidget {
   @override
   build(context) => Scaffold(
         appBar: AppBar(
-          centerTitle: true,
+          centerTitle: false,
           title: Text(
             this.title,
-            style: Theme.of(context).textTheme.display2,
+            style: Theme.of(context).textTheme.title,
           ),
         ),
         body: this.body,

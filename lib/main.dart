@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gym_app/components/blank.dart';
 import 'package:gym_app/components/error.dart';
 import 'package:gym_app/components/exercises.dart';
 import 'package:gym_app/components/home.dart';
@@ -7,10 +8,11 @@ import 'package:gym_app/components/sessions.dart';
 import 'package:gym_app/components/signin_or_register.dart';
 import 'package:gym_app/routes.dart';
 import 'package:gym_app/services/auth.dart';
+import 'package:gym_app/services/exercises.dart';
 
-main() {
-  runApp(_App());
-}
+import 'components/loading.dart';
+
+main() => runApp(_App());
 
 class _App extends StatelessWidget {
   @override
@@ -30,12 +32,36 @@ class _App extends StatelessWidget {
                 signedIn: (context, state) => HomeScreen(authState: state),
                 signedOut: (context, state) =>
                     SignInOrRegisterScreen(authState: state),
+                loading: (context, state) {
+                  if (state is AuthLoadingCurrentUser) {
+                    return Loading(text: 'Authorising');
+                  }
+
+                  if (state is AuthSigningIn) {
+                    return Loading(text: 'Signing In');
+                  }
+
+                  if (state is AuthSigningOut) {
+                    return Loading(text: 'Signing Out');
+                  }
+
+                  return BlankScreen();
+                },
               ),
 
           /////////////////////////////////////////////////
           /// Handler for the exercises route
           ///
-          Routes.exercises: (context) => const ExercisesScreen(),
+          Routes.exercises: (context) => AuthenticationBloc(
+                signedIn: (context, authState) => ExerciseBloc(
+                  userId: authState.userId,
+                  loading: (_) => Loading(text: 'Loading exercises...'),
+                  ready: (context, exerciseData) =>
+                      ExercisesScreen(state: exerciseData),
+                ),
+                signedOut: (context, state) => BlankScreen(),
+                loading: (context, state) => BlankScreen(),
+              ),
 
           /////////////////////////////////////////////////
           /// Handler for the index route

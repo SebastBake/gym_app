@@ -4,7 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:gym_app/components/blank.dart';
-import 'package:gym_app/components/loading.dart';
 
 /////////////////////////////////////////////////////////////////////////// Public State classes
 
@@ -38,41 +37,43 @@ abstract class AuthSignedOut extends AuthState {
 ////////////////////////////////////////////////////////////////////////// Authentication Bloc
 
 class AuthenticationBloc extends StatefulWidget {
+  final Widget Function(BuildContext, AuthLoading) loading;
   final Widget Function(BuildContext, AuthSignedIn) signedIn;
   final Widget Function(BuildContext, AuthSignedOut) signedOut;
 
   AuthenticationBloc({
     Key key,
+    @required this.loading,
     @required this.signedIn,
     @required this.signedOut,
   }) : super(key: key);
 
   _AuthenticationBlocState createState() => _AuthenticationBlocState(
-        signedIn: this.signedIn,
-        signedOut: this.signedOut,
-      );
+      signedIn: signedIn, signedOut: signedOut, loading: loading);
 }
 
 class _AuthenticationBlocState extends State<AuthenticationBloc> {
+  final Widget Function(BuildContext, AuthLoading) loading;
   final Widget Function(BuildContext, AuthSignedIn) signedIn;
   final Widget Function(BuildContext, AuthSignedOut) signedOut;
 
   Stream<AuthState> stream;
 
   _AuthenticationBlocState({
+    @required this.loading,
     @required this.signedIn,
     @required this.signedOut,
   });
 
   @override
   initState() {
-    this.stream = _makeAuthStream();
+    stream = _makeAuthStream();
     super.initState();
   }
 
   @override
   build(context) => StreamBuilder(
-        stream: this.stream,
+        stream: stream,
         builder: (context, snapshot) => snapshot.hasData
             ? _renderState(context, snapshot.data)
             : BlankScreen(),
@@ -87,16 +88,8 @@ class _AuthenticationBlocState extends State<AuthenticationBloc> {
       return signedOut(context, state);
     }
 
-    if (state is AuthLoadingCurrentUser) {
-      return Loading(text: 'Authorising');
-    }
-
-    if (state is AuthSigningIn) {
-      return Loading(text: 'Signing In');
-    }
-
-    if (state is AuthSigningOut) {
-      return Loading(text: 'Signing Out');
+    if (state is AuthLoading) {
+      return loading(context, state);
     }
 
     return BlankScreen();
