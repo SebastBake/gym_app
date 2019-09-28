@@ -27,6 +27,17 @@ class MenuModal extends StatelessWidget {
                     .popUntil((route) => route.settings.name == Routes.index);
               },
             ),
+            Divider(),
+            RaisedButton(
+              child: Text("Edit Exercise Plan"),
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).pushNamed(
+                  Routes.exercises,
+                  arguments: this.authState,
+                );
+              },
+            )
           ],
         ),
       );

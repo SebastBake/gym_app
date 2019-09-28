@@ -9,7 +9,7 @@ class ScreenTemplate extends StatelessWidget {
 
   const ScreenTemplate({
     Key key,
-    @required this.title,
+    this.title,
     this.fabs = const [],
     this.body = const Placeholder(),
     this.onMenuPressed,
@@ -17,13 +17,15 @@ class ScreenTemplate extends StatelessWidget {
 
   @override
   build(context) => Scaffold(
-        appBar: AppBar(
-          centerTitle: false,
-          title: Text(
-            this.title,
-            style: Theme.of(context).textTheme.title,
-          ),
-        ),
+        appBar: this.title != null
+            ? AppBar(
+                centerTitle: false,
+                title: Text(
+                  this.title,
+                  style: Theme.of(context).textTheme.title,
+                ),
+              )
+            : null,
         body: this.body,
         floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
         floatingActionButton: Row(

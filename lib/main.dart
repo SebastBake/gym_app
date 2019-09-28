@@ -4,7 +4,6 @@ import 'package:gym_app/components/error.dart';
 import 'package:gym_app/components/exercises.dart';
 import 'package:gym_app/components/home.dart';
 import 'package:gym_app/components/new_session.dart';
-import 'package:gym_app/components/sessions.dart';
 import 'package:gym_app/components/signin_or_register.dart';
 import 'package:gym_app/routes.dart';
 import 'package:gym_app/services/auth.dart';
@@ -62,14 +61,6 @@ class _App extends StatelessWidget {
                 signedOut: (context, state) => BlankScreen(),
                 loading: (context, state) => BlankScreen(),
               ),
-
-          /////////////////////////////////////////////////
-          /// Handler for the index route
-          ///
-          Routes.sessionList: (context) {
-            final authState = _getAuthState(context);
-            return SessionsScreen(authState: authState);
-          },
 
           /////////////////////////////////////////////////
           /// Handler for the session route
