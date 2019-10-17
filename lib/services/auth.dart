@@ -3,9 +3,8 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:gym_app/components/blank.dart';
 
-/////////////////////////////////////////////////////////////////////////// Public State classes
+//......................................................... Public State classes
 
 @immutable
 class AuthState {}
@@ -34,28 +33,35 @@ abstract class AuthSignedOut extends AuthState {
   Future<void> signInWithGoogle();
 }
 
-////////////////////////////////////////////////////////////////////////// Authentication Bloc
+//.......................................................... Authentication Bloc
 
 class AuthenticationBloc extends StatefulWidget {
   final Widget Function(BuildContext, AuthLoading) loading;
   final Widget Function(BuildContext, AuthSignedIn) signedIn;
   final Widget Function(BuildContext, AuthSignedOut) signedOut;
+  final Widget Function(BuildContext) error;
 
   AuthenticationBloc({
     Key key,
     @required this.loading,
     @required this.signedIn,
     @required this.signedOut,
+    @required this.error,
   }) : super(key: key);
 
   _AuthenticationBlocState createState() => _AuthenticationBlocState(
-      signedIn: signedIn, signedOut: signedOut, loading: loading);
+        signedIn: signedIn,
+        signedOut: signedOut,
+        loading: loading,
+        error: error,
+      );
 }
 
 class _AuthenticationBlocState extends State<AuthenticationBloc> {
   final Widget Function(BuildContext, AuthLoading) loading;
   final Widget Function(BuildContext, AuthSignedIn) signedIn;
   final Widget Function(BuildContext, AuthSignedOut) signedOut;
+  final Widget Function(BuildContext) error;
 
   Stream<AuthState> stream;
 
@@ -63,6 +69,7 @@ class _AuthenticationBlocState extends State<AuthenticationBloc> {
     @required this.loading,
     @required this.signedIn,
     @required this.signedOut,
+    @required this.error,
   });
 
   @override
@@ -76,7 +83,7 @@ class _AuthenticationBlocState extends State<AuthenticationBloc> {
         stream: stream,
         builder: (context, snapshot) => snapshot.hasData
             ? _renderState(context, snapshot.data)
-            : BlankScreen(),
+            : error(context),
       );
 
   Widget _renderState(BuildContext context, AuthState state) {
@@ -92,14 +99,11 @@ class _AuthenticationBlocState extends State<AuthenticationBloc> {
       return loading(context, state);
     }
 
-    return BlankScreen();
+    return error(context);
   }
 }
 
-///////////////////////////////////////////////////////////////////// Implementation of auth Stream
-
-final _auth = FirebaseAuth.instance;
-final _googleSignIn = GoogleSignIn();
+//................................................ Implementation of auth Stream
 
 Stream<AuthState> _makeAuthStream() {
   StreamController<AuthState> controller;
@@ -112,16 +116,26 @@ Stream<AuthState> _makeAuthStream() {
 }
 
 void _startStream(StreamController<AuthState> controller) async {
+  final auth = FirebaseAuth.instance;
+
+  final googleSignIn = GoogleSignIn();
+
   controller.add(AuthLoadingCurrentUser());
 
-  final currentUser = await _auth.currentUser();
+  final currentUser = await auth.currentUser();
 
   final nextState = currentUser == null
-      ? _SignedOut(controller: controller)
+      ? _SignedOut(
+          controller: controller,
+          auth: auth,
+          googleSignIn: googleSignIn,
+        )
       : _SignedIn(
           userId: currentUser.uid,
           displayName: currentUser.displayName,
           controller: controller,
+          auth: auth,
+          googleSignIn: googleSignIn,
         );
 
   controller.add(nextState);
@@ -130,15 +144,21 @@ void _startStream(StreamController<AuthState> controller) async {
 @immutable
 class _SignedOut extends AuthSignedOut {
   final StreamController<AuthState> controller;
+  final FirebaseAuth auth;
+  final GoogleSignIn googleSignIn;
 
-  _SignedOut({@required this.controller});
+  _SignedOut({
+    @required this.controller,
+    @required this.auth,
+    @required this.googleSignIn,
+  });
 
   @override
   signInWithGoogle() async {
     try {
       controller.add(AuthSigningIn());
 
-      final googleAccount = await _googleSignIn.signIn();
+      final googleAccount = await googleSignIn.signIn();
 
       final googleAuth = await googleAccount.authentication;
 
@@ -147,12 +167,14 @@ class _SignedOut extends AuthSignedOut {
         idToken: googleAuth.idToken,
       );
 
-      final firebaseSignIn = await _auth.signInWithCredential(credential);
+      final firebaseSignIn = await auth.signInWithCredential(credential);
 
       final nextState = _SignedIn(
         controller: controller,
         userId: firebaseSignIn.user.uid,
         displayName: firebaseSignIn.user.displayName,
+        auth: auth,
+        googleSignIn: googleSignIn,
       );
 
       controller.add(nextState);
@@ -168,21 +190,29 @@ class _SignedIn extends AuthSignedIn {
   final String displayName;
   final String userId;
   final StreamController<AuthState> controller;
+  final FirebaseAuth auth;
+  final GoogleSignIn googleSignIn;
 
   _SignedIn({
     @required this.displayName,
     @required this.userId,
     @required this.controller,
+    @required this.auth,
+    @required this.googleSignIn,
   });
 
   @override
   signOut() async {
     controller.add(AuthSigningOut());
 
-    await _googleSignIn.signOut();
-    await _auth.signOut();
+    await googleSignIn.signOut();
+    await auth.signOut();
 
-    final nextState = _SignedOut(controller: controller);
+    final nextState = _SignedOut(
+      controller: controller,
+      auth: auth,
+      googleSignIn: googleSignIn,
+    );
     controller.add(nextState);
   }
 }

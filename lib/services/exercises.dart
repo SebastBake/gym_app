@@ -1,84 +1,88 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:gym_app/components/blank.dart';
+import 'package:gym_app/services/measurables.dart';
+import 'package:provider/provider.dart';
 
-@immutable
-abstract class ExerciseStateLoaded {
-  List<ExerciseData> get data;
+abstract class Exercise {
+  /// Can be null if data is not saved
+  String get id;
+  String get creatorId;
 
-  const ExerciseStateLoaded();
+  String name;
+  List<Measurable> measurables;
 
-  void createExercise(ExerciseData data);
-  void updateExercise(ExerciseData data);
-  void deleteExercise(String exerciseId);
+  Future<void> delete();
+  Future<void> save();
 }
 
-@immutable
-class ExerciseData {
-  final String id;
-  final String name;
-  final Set<ExerciseMeasurable> measurables;
+//................................................... Constants
 
-  const ExerciseData({
-    this.id,
-    @required this.name,
-    @required this.measurables,
-  });
-}
+final _exerciseCollection = Firestore.instance.collection('exercises');
+
+//.................................................. Factory Bloc Implementation
 
 @immutable
-abstract class ExerciseMeasurable {
-  String get name;
-  String get jsonKey;
-  IconData get icon;
-
-  static final weight = _ExerciseMeasurable(
-    icon: Icons.fitness_center,
-    name: 'Weight',
-    jsonKey: 'weight',
-  );
-
-  static final repsAndSets = _ExerciseMeasurable(
-    icon: Icons.threesixty,
-    name: 'Reps / Sets',
-    jsonKey: 'setsAndReps',
-  );
-
-  static final all = [
-    weight,
-    repsAndSets,
-  ];
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-
-class ExerciseBloc extends StatefulWidget {
-  final Widget Function(BuildContext) loading;
-  final Widget Function(BuildContext, ExerciseStateLoaded) ready;
+class ExerciseFactoryBloc extends StatelessWidget {
+  final Widget child;
   final String userId;
 
-  ExerciseBloc({
+  const ExerciseFactoryBloc({
+    Key key,
+    @required this.child,
+    @required this.userId,
+  }) : super(key: key);
+
+  static ExerciseFactoryBloc of(BuildContext context) {
+    return Provider.of<ExerciseFactoryBloc>(context);
+  }
+
+  @override
+  Widget build(BuildContext context) => Provider<ExerciseFactoryBloc>.value(
+        value: this,
+        child: this.child,
+      );
+
+  Exercise makeExercise({
+    @required String name,
+    List<Measurable> measurables = const [],
+  }) =>
+      _Exercise(
+        creatorId: this.userId,
+        measurables: measurables,
+        name: name,
+      );
+}
+
+//.................................................... Query Bloc Implementation
+
+@immutable
+class ExerciseQueryBloc extends StatefulWidget {
+  final Widget Function(BuildContext) loading;
+  final Widget Function(BuildContext, List<Exercise>) ready;
+  final String userId;
+
+  ExerciseQueryBloc({
     Key key,
     @required this.userId,
     @required this.loading,
     @required this.ready,
   }) : super(key: key);
 
-  _ExerciseBlocState createState() => _ExerciseBlocState(
+  _ExerciseQueryBlocState createState() => _ExerciseQueryBlocState(
         userId: userId,
         loading: loading,
         ready: ready,
       );
 }
 
-class _ExerciseBlocState extends State<ExerciseBloc> {
+class _ExerciseQueryBlocState extends State<ExerciseQueryBloc> {
   final Widget Function(BuildContext) loading;
-  final Widget Function(BuildContext, ExerciseStateLoaded) ready;
+  final Widget Function(BuildContext, List<Exercise>) ready;
   final String userId;
 
-  Stream<_ExerciseStateLoaded> stream;
+  Stream<List<Exercise>> _stream;
 
-  _ExerciseBlocState({
+  _ExerciseQueryBlocState({
     @required this.userId,
     @required this.loading,
     @required this.ready,
@@ -86,92 +90,78 @@ class _ExerciseBlocState extends State<ExerciseBloc> {
 
   @override
   void initState() {
-    stream = _makeExerciseStream();
+    this._stream = _exerciseCollection
+        .where('creatorId', isEqualTo: this.userId)
+        .snapshots()
+        .map((snap) => snap.documents
+            .map<Exercise>((doc) {
+              try {
+                return _Exercise.fromDocument(doc);
+              } catch (e) {
+                print(e);
+                return null;
+              }
+            })
+            .where((o) => o != null)
+            .toList());
+
     super.initState();
   }
 
   @override
-  build(context) => StreamBuilder(
-        stream: stream,
-        builder: (BuildContext context,
-                AsyncSnapshot<_ExerciseStateLoaded> snapshot) =>
-            snapshot.hasData ? ready(context, snapshot.data) : BlankScreen(),
-      );
-
-  Stream<_ExerciseStateLoaded> _makeExerciseStream() {
-    final snapshots = Firestore.instance
-        .collection('exercises')
-        .where('creatorId', isEqualTo: userId)
-        .snapshots();
-
-    final dataStream = snapshots.map(
-        (snap) => _ExerciseStateLoaded.fromDocuments(userId, snap.documents));
-
-    return dataStream;
-  }
-}
-
-/////////////////////////////////////////////////////////////////////////////////
-
-@immutable
-class _ExerciseStateLoaded extends ExerciseStateLoaded {
-  final List<ExerciseData> data;
-  final String userId;
-
-  _ExerciseStateLoaded({@required this.data, @required this.userId});
-
-  factory _ExerciseStateLoaded.fromDocuments(
-    String userId,
-    List<DocumentSnapshot> docs,
-  ) {
-    final exerciseList = docs
-        .map((doc) => ExerciseData(
-            id: doc.documentID,
-            name: doc.data['name'],
-            measurables: ExerciseMeasurable.all
-                .where((item) => doc.data['measurables'].contains(item.jsonKey))
-                .toSet()))
-        .toList();
-
-    return _ExerciseStateLoaded(data: exerciseList, userId: userId);
-  }
-
-  @override
-  void createExercise(ExerciseData data) {
-    final json = exerciseDataToJson(data);
-    Firestore.instance.collection('exercises').add(json);
-  }
-
-  @override
-  void deleteExercise(String exerciseId) {
-    Firestore.instance.collection('exercises').document(exerciseId).delete();
-  }
-
-  @override
-  void updateExercise(ExerciseData data) {
-    final json = exerciseDataToJson(data);
-    Firestore.instance
-        .collection('exercises')
-        .document(data.id)
-        .updateData(json);
-  }
-
-  Map<String, dynamic> exerciseDataToJson(ExerciseData data) => ({
-        'name': data.name,
-        'creatorId': userId,
-        'measurables': data.measurables.toList().map((m) => m.jsonKey).toList(),
+  build(context) => StreamBuilder<List<Exercise>>(
+      stream: this._stream,
+      builder: (context, snapshot) {
+        return snapshot.hasData
+            ? ready(context, snapshot.data)
+            : loading(context);
       });
 }
 
-@immutable
-class _ExerciseMeasurable extends ExerciseMeasurable {
-  final String name;
-  final String jsonKey;
-  final IconData icon;
+//...................................................... Exercise implementation
 
-  _ExerciseMeasurable({
-    @required this.icon,
+class _Exercise extends Exercise {
+  String id;
+  String name;
+  String creatorId;
+  List<Measurable> measurables;
+
+  _Exercise({
+    this.id,
+    @required this.creatorId,
     @required this.name,
-    @required this.jsonKey,
+    @required this.measurables,
   });
+
+  _Exercise.fromDocument(DocumentSnapshot doc)
+      : this(
+          id: doc.documentID,
+          name: doc.data['name'],
+          creatorId: doc.data['creatorId'],
+          measurables: Measurable.getByKeys(doc.data['measurables']),
+        );
+
+  @override
+  Future<void> delete() async {
+    if (this.id != null) {
+      _exerciseCollection.document(this.id).delete();
+      this.id = null;
+    }
+  }
+
+  @override
+  Future<void> save() async {
+    if (this.id == null) {
+      final doc = await _exerciseCollection.add(this._json);
+      this.id = doc.documentID;
+    } else {
+      _exerciseCollection.document(this.id).updateData(this._json);
+    }
+  }
+
+  Map<String, dynamic> get _json => ({
+        'name': this.name,
+        'creatorId': this.creatorId,
+        'measurables': this.measurables.toList().map((m) => m.jsonKey).toList(),
+      });
 }

@@ -17,20 +17,21 @@ class _App extends StatelessWidget {
   @override
   build(context) => MaterialApp(
         title: 'Workout Log',
-        theme: ThemeData.dark(),
+        theme: ThemeData.light(),
+        themeMode: ThemeMode.system,
+        darkTheme: ThemeData.dark(),
         initialRoute: Routes.index,
         onUnknownRoute: (routeSettings) => MaterialPageRoute(
           builder: (context) =>
               ErrorScreen(debugMessage: 'The page could not be found.'),
         ),
         routes: {
-          /////////////////////////////////////////////////
           /// Handler for the index route
-          ///
           Routes.index: (context) => AuthenticationBloc(
                 signedIn: (context, state) => HomeScreen(authState: state),
                 signedOut: (context, state) =>
                     SignInOrRegisterScreen(authState: state),
+                error: (context) => BlankScreen(),
                 loading: (context, state) {
                   if (state is AuthLoadingCurrentUser) {
                     return Loading(text: 'Authorising');
@@ -48,33 +49,24 @@ class _App extends StatelessWidget {
                 },
               ),
 
-          /////////////////////////////////////////////////
           /// Handler for the exercises route
-          ///
           Routes.exercises: (context) => AuthenticationBloc(
-                signedIn: (context, authState) => ExerciseBloc(
+                error: (context) => BlankScreen(),
+                signedIn: (context, authState) => ExerciseFactoryBloc(
                   userId: authState.userId,
-                  loading: (_) => Loading(text: 'Loading exercises...'),
-                  ready: (context, exerciseData) =>
-                      ExercisesScreen(state: exerciseData),
+                  child: ExerciseQueryBloc(
+                    userId: authState.userId,
+                    loading: (_) => Loading(text: 'Loading exercises...'),
+                    ready: (_, exerciseData) =>
+                        ExercisesScreen(exercises: exerciseData),
+                  ),
                 ),
                 signedOut: (context, state) => BlankScreen(),
                 loading: (context, state) => BlankScreen(),
               ),
 
-          /////////////////////////////////////////////////
           /// Handler for the session route
-          ///
           Routes.session: (context) => const SessionScreen(),
         },
       );
-}
-
-AuthSignedIn _getAuthState(BuildContext context) {
-  final route = ModalRoute.of(context);
-  final args = route.settings.arguments;
-  if (args is AuthSignedIn) {
-    return args;
-  }
-  throw Exception("Cannot find auth state!");
 }

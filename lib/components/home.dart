@@ -7,13 +7,6 @@ import 'package:gym_app/services/auth.dart';
 
 import 'menu_modal.dart';
 
-/// Home Screen
-/// I don't know exactly how this page will be presented.
-/// Here are some things I want to be able to do:
-/// * See user info and log out
-/// * Button to start a new session
-/// * Button to edit exercise plan (inside menu)
-/// * Button to see previous sessions
 class HomeScreen extends StatelessWidget {
   final AuthSignedIn authState;
   const HomeScreen({Key key, this.authState}) : super(key: key);
@@ -37,7 +30,7 @@ class HomeScreen extends StatelessWidget {
                 'Welcome back ${authState.displayName}!',
                 style: Theme.of(context).textTheme.display2,
               ),
-              SessionList()
+              // SessionList()
             ],
           ),
         ),

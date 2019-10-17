@@ -1,12 +1,25 @@
+import 'dart:collection';
+
 import 'package:flutter/material.dart';
 import 'package:gym_app/components/forms.dart';
-import 'package:gym_app/services/exercises.dart';
+import 'package:gym_app/services/measurables.dart';
+
+@immutable
+class ExerciseFormData {
+  final String name;
+  final List<Measurable> measurables;
+
+  const ExerciseFormData({
+    @required this.name,
+    @required this.measurables,
+  });
+}
 
 class ExerciseForm extends StatefulWidget {
-  final Function(ExerciseData) onCreate;
-  final Function(ExerciseData) onUpdate;
+  final Function(ExerciseFormData) onCreate;
+  final Function(ExerciseFormData) onUpdate;
   final Function onDelete;
-  final ExerciseData initialData;
+  final ExerciseFormData initialData;
 
   const ExerciseForm({
     this.initialData,
@@ -27,13 +40,13 @@ class ExerciseForm extends StatefulWidget {
 class _ExerciseFormState extends State<ExerciseForm> {
   final _formKey = GlobalKey<FormState>();
   final _nameFieldController = TextEditingController();
-  final Set<ExerciseMeasurable> _measurables = Set();
+  final List<Measurable> _measurables = List();
 
   final String userId;
-  final Function(ExerciseData) onCreate;
-  final Function(ExerciseData) onUpdate;
+  final Function(ExerciseFormData) onCreate;
+  final Function(ExerciseFormData) onUpdate;
   final Function onDelete;
-  final ExerciseData initialData;
+  final ExerciseFormData initialData;
 
   _ExerciseFormState({
     this.userId,
@@ -84,36 +97,34 @@ class _ExerciseFormState extends State<ExerciseForm> {
   }
 
   void _onPressUpdate() {
-    final isValid = _formKey.currentState.validate();
-    if (!isValid) {
+    final data = _createFormData();
+    if (data == null) {
       return;
     }
-
-    if (initialData == null) {
-      throw Exception('Cannot update exercise without id!');
-    }
-
-    final name = _nameFieldController.text;
-    final data = ExerciseData(
-      id: initialData.id,
-      measurables: _measurables,
-      name: name,
-    );
     onUpdate(data);
   }
 
   void _onPressCreate() {
+    final data = _createFormData();
+    if (data == null) {
+      return;
+    }
+    onCreate(data);
+  }
+
+  /// Returns null if form invalid
+  ExerciseFormData _createFormData() {
     final isValid = _formKey.currentState.validate();
     if (!isValid) {
-      return;
+      return null;
     }
 
     final name = _nameFieldController.text;
-    final data = ExerciseData(
+    final data = ExerciseFormData(
       measurables: _measurables,
       name: name,
     );
-    onCreate(data);
+    return data;
   }
 }
 
@@ -123,9 +134,9 @@ class _ExerciseFormTemplate extends StatelessWidget {
   final Function onCreate;
   final Function onUpdate;
   final Function onDelete;
-  final Function(ExerciseMeasurable) removeMeasurable;
-  final Function(ExerciseMeasurable) addMeasurable;
-  final Function(ExerciseMeasurable) hasMeasurable;
+  final Function(Measurable) removeMeasurable;
+  final Function(Measurable) addMeasurable;
+  final Function(Measurable) hasMeasurable;
 
   _ExerciseFormTemplate({
     @required this.nameFieldController,
@@ -151,8 +162,7 @@ class _ExerciseFormTemplate extends StatelessWidget {
               validator: _validateExerciseName,
             ),
             const FormSectionTitle('Measuring:'),
-            ...ExerciseMeasurable.all
-                .map((measurable) => _buildCheckbox(measurable)),
+            ...Measurable.all.map((measurable) => _buildCheckbox(measurable)),
             Row(mainAxisAlignment: MainAxisAlignment.end, children: [
               // Delete BUtton
               if (onDelete != null)
@@ -174,7 +184,7 @@ class _ExerciseFormTemplate extends StatelessWidget {
       );
 
   /// Creates a checkbox to add or remove a measurable
-  _buildCheckbox(ExerciseMeasurable measurable) => NamedCheckboxField(
+  _buildCheckbox(Measurable measurable) => NamedCheckboxField(
         title: measurable.name,
         icon: measurable.icon,
         value: hasMeasurable(measurable),

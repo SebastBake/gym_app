@@ -1,20 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:gym_app/components/edit_exercies_form.dart';
 import 'package:gym_app/components/fab.dart';
 import 'package:gym_app/components/page_template.dart';
-import 'package:gym_app/services/auth.dart';
 import 'package:gym_app/services/exercises.dart';
-
-import 'new_exercies_form.dart';
+import 'package:gym_app/services/measurables.dart';
 
 class ExercisesScreen extends StatelessWidget {
-  final ExerciseStateLoaded state;
+  final List<Exercise> exercises;
 
-  const ExercisesScreen({@required this.state});
+  const ExercisesScreen({@required this.exercises});
 
   @override
   build(context) => ScreenTemplate(
         title: "Exercises",
-        body: state.data.length == 0
+        body: exercises.length == 0
             ? Center(
                 child: Text('Add an exercise :)'),
               )
@@ -30,24 +29,28 @@ class ExercisesScreen extends StatelessWidget {
         fabs: [
           FAB(
             icon: Icons.add,
-            onPressed: () => _showAddForm(context),
+            onPressed: () => _showAddForm(
+              context,
+              ExerciseFactoryBloc.of(context),
+            ),
           ),
         ],
       );
 
-  Widget _renderListItem(BuildContext context, ExerciseData exerciseItem) =>
+  Widget _renderListItem(BuildContext context, Exercise exerciseItem) =>
       ListTile(
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: <Widget>[
             Text(exerciseItem.name),
             Row(
-              children: ExerciseMeasurable.all
+              children: Measurable.all
                   .map(
                     (m) => exerciseItem.measurables.contains(m)
                         ? Icon(m.icon)
                         : Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 13)),
+                            padding: EdgeInsets.symmetric(horizontal: 13),
+                          ),
                   )
                   .map(
                     (widget) => Padding(
@@ -63,23 +66,7 @@ class ExercisesScreen extends StatelessWidget {
         trailing: Icon(Icons.keyboard_arrow_right),
       );
 
-  void _showAddForm(BuildContext context) => showModalBottomSheet(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10.0),
-        ),
-        context: context,
-        builder: (context) => Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20),
-          child: ExerciseForm(
-            onCreate: (data) {
-              state.createExercise(data);
-              Navigator.of(context).pop();
-            },
-          ),
-        ),
-      );
-
-  void _showEditForm(BuildContext context, ExerciseData exerciseItem) =>
+  void _showAddForm(BuildContext context, ExerciseFactoryBloc factoryBloc) =>
       showModalBottomSheet(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10.0),
@@ -88,21 +75,50 @@ class ExercisesScreen extends StatelessWidget {
         builder: (context) => Padding(
           padding: EdgeInsets.symmetric(horizontal: 20),
           child: ExerciseForm(
-            initialData: exerciseItem,
-            onDelete: () {
-              state.deleteExercise(exerciseItem.id);
-              Navigator.of(context).pop();
-            },
-            onUpdate: (data) {
-              state.updateExercise(data);
+            onCreate: (data) {
+              final exercise = factoryBloc.makeExercise(
+                name: data.name,
+                measurables: data.measurables.toList(),
+              );
+
+              exercise.save();
+
               Navigator.of(context).pop();
             },
           ),
         ),
       );
 
-  List<ExerciseData> _getSortedExerciseItems() {
-    final items = [...state.data];
+  void _showEditForm(BuildContext context, Exercise exerciseItem) =>
+      showModalBottomSheet(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10.0),
+        ),
+        context: context,
+        builder: (context) => Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20),
+          child: ExerciseForm(
+            initialData: ExerciseFormData(
+              name: exerciseItem.name,
+              measurables: exerciseItem.measurables,
+            ),
+            onDelete: () {
+              exerciseItem.delete();
+              Navigator.of(context).pop();
+            },
+            onUpdate: (data) {
+              exerciseItem
+                ..name = data.name
+                ..measurables = data.measurables
+                ..save();
+              Navigator.of(context).pop();
+            },
+          ),
+        ),
+      );
+
+  List<Exercise> _getSortedExerciseItems() {
+    final items = [...this.exercises];
     items.sort((a, b) => a.name.compareTo(b.name));
     return items;
   }
